@@ -1,68 +1,56 @@
 plugins {
-    val kotlinVersion = "1.5.10"
-    kotlin("jvm") version kotlinVersion
-    kotlin("plugin.serialization") version kotlinVersion
+    kotlin("jvm") version "1.6.21"
+    kotlin("plugin.serialization") version "1.6.21"
 
-    id("net.mamoe.mirai-console") version "2.6.7"
+    id("net.mamoe.mirai-console") version "2.12.0-RC"
 }
 
-group = "io.github.gnuf0rce"
-version = "0.1.0-dev-1"
+group = "xyz.cssxsh"
+version = "1.0.0-dev"
 
 repositories {
     mavenLocal()
-    maven(url = "https://maven.aliyun.com/repository/public")
     mavenCentral()
-    jcenter()
-    maven(url = "https://maven.aliyun.com/repository/gradle-plugin")
-    gradlePluginPortal()
 }
 
 kotlin {
-    sourceSets {
-        all {
-            languageSettings.useExperimentalAnnotation("kotlinx.serialization.InternalSerializationApi")
-            languageSettings.useExperimentalAnnotation("kotlinx.serialization.ExperimentalSerializationApi")
-        }
-        test {
-            //
-        }
-    }
-}
-
-mirai {
-    jvmTarget = JavaVersion.VERSION_11
-    configureShadow {
-        exclude {
-            it.path.startsWith("kotlin")
-        }
-//        exclude {
-//            val features = listOf("features")
-//            it.path.startsWith("io/ktor") && it.path.startsWith("io/ktor/client/features/compression").not()
-//        }
-//        exclude {
-//            it.path.startsWith("okhttp3/internal")
-//        }
-//        exclude {
-//            it.path.startsWith("okio")
-//        }
-    }
+    explicitApi()
 }
 
 dependencies {
-    implementation(ktor("client-encoding", Versions.ktor)) {
-        exclude(group = "io.ktor", module = "client-core")
+    implementation("io.ktor:ktor-client-core:2.0.2") {
+        exclude(group = "org.jetbrains.kotlin")
+        exclude(group = "org.jetbrains.kotlinx")
+        exclude(group = "org.slf4j")
     }
-    implementation(ktor("client-serialization", Versions.ktor)) {
-        exclude(group = "io.ktor", module = "client-core")
+    implementation("io.ktor:ktor-client-okhttp:2.0.2") {
+        exclude(group = "org.jetbrains.kotlin")
+        exclude(group = "org.jetbrains.kotlinx")
+        exclude(group = "org.slf4j")
     }
-    // compileOnly(okhttp3("okhttp", Versions.okhttp))
-    implementation(okhttp3("okhttp-dnsoverhttps", Versions.okhttp)) {
-        exclude(group = "com.squareup.okhttp3")
+    implementation("io.ktor:ktor-client-encoding:2.0.2") {
+        exclude(group = "org.jetbrains.kotlin")
+        exclude(group = "org.jetbrains.kotlinx")
+        exclude(group = "org.slf4j")
     }
-    implementation(jsoup(Versions.jsoup))
+    implementation("io.ktor:ktor-client-content-negotiation:2.0.2") {
+        exclude(group = "org.jetbrains.kotlin")
+        exclude(group = "org.jetbrains.kotlinx")
+        exclude(group = "org.slf4j")
+    }
+    implementation("io.ktor:ktor-serialization-kotlinx-json:2.0.2") {
+        exclude(group = "org.jetbrains.kotlin")
+        exclude(group = "org.jetbrains.kotlinx")
+        exclude(group = "org.slf4j")
+    }
+    implementation("com.squareup.okhttp3:okhttp:4.10.0") {
+        exclude(group = "org.jetbrains.kotlin")
+        exclude(group = "org.jetbrains.kotlinx")
+        exclude(group = "org.slf4j")
+    }
     // test
-    testImplementation(group = "org.junit.jupiter", name = "junit-jupiter", version = Versions.junit)
+    testImplementation(kotlin("test", "1.6.21"))
+    testImplementation("net.mamoe:mirai-slf4j-bridge:1.2.0")
 }
 
 tasks {
