@@ -26,17 +26,14 @@ public object SteamListenerHost : SimpleListenerHost() {
     public suspend fun MessageEvent.bind() {
         val content = message.contentToString()
         when {
-            "steam-bind" in content -> {
-                subject.sendMessage(message = buildString {
-                    for (friend in sender.steam.friends) {
-                        appendLine("${friend.steamID} - ${friend.relationship}")
-                    }
-                })
+             content.startsWith("#steam-bind") -> {
+                // TODO: steam bind
             }
-            "steam-friends" in content -> {
+            "#steam-friends" in content -> {
                 subject.sendMessage(message = buildString {
-                    for (friend in sender.steam.friends) {
-                        appendLine("${friend.steamID} - ${friend.relationship}")
+                    for (friend in sender.steam.relationship) {
+                        if (friend.steamID.isIndividualAccount.not()) continue
+                        appendLine("${friend.steamID} - ${friend.nickname} - ${friend.relationship}")
                     }
                 })
             }

@@ -1,9 +1,11 @@
 package xyz.cssxsh.mirai.steam
 
+import `in`.dragonbra.javasteam.enums.EFriendRelationship
 import `in`.dragonbra.javasteam.enums.EResult
-import `in`.dragonbra.javasteam.steam.handlers.steamfriends.Friend as SteamFriend
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.SteamFriends
+import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.ChatMsgCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.FriendsListCallback
+import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.NicknameListCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.LogOnDetails
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.SteamUser
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.callback.LoggedOffCallback
@@ -13,9 +15,11 @@ import `in`.dragonbra.javasteam.steam.steamclient.SteamClient
 import `in`.dragonbra.javasteam.steam.steamclient.callbackmgr.CallbackManager
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.ConnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.DisconnectedCallback
+import `in`.dragonbra.javasteam.types.SteamID
 import kotlinx.coroutines.*
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.contact.*
+import net.mamoe.mirai.message.data.*
 import net.mamoe.mirai.utils.*
 import xyz.cssxsh.mirai.steam.data.*
 import java.io.Closeable
@@ -33,15 +37,26 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
     private val configuration = SteamKitConfig.toSteamConfiguration()
     public val client: SteamClient = SteamClient(configuration)
     public val auth: SteamUser = client.handler()
-    public val chat: SteamFriends = client.handler()
+    public val friends: SteamFriends = client.handler()
     public val manager: CallbackManager = client.manager()
-    public var friends: List<SteamFriend> = ArrayList()
-        private set
+
+    private val relationships: MutableMap<SteamID, EFriendRelationship> = HashMap()
+    private val nicknames: MutableMap<SteamID, String> = HashMap()
+    public val relationship: Sequence<SteamFriendRelationship>
+        get() = sequence {
+            for ((id, relationship) in relationships) {
+                val nickname = nicknames[id] ?: "$id"
+                yield(SteamFriendRelationship(
+                    steamID = id,
+                    relationship = relationship,
+                    nickname = nickname
+                ))
+            }
+        }
 
     private val listeners: MutableList<Closeable> = ArrayList()
     private var key: String by SteamAuthData
     private var name: String by SteamAuthData
-    private var temp = ""
 
     init {
         //
@@ -57,7 +72,7 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
             if (callback.isUserInitiated) {
                 logger.info("Disconnected from Steam")
             } else {
-                logger.error("Disconnected from Steam, Try reconnect")
+                logger.warning("Disconnected from Steam, Try reconnect")
                 client.connect()
             }
         }
@@ -70,14 +85,36 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
             }
         }
         listeners += manager.subscribe<LoginKeyCallback> { callback ->
+            logger.debug("refresh login key $key for $name")
             key = callback.loginKey
-            name = temp
         }
         listeners += manager.subscribe<LoggedOffCallback> { callback ->
             logger.warning("Logged off of Steam: ${callback.result}")
         }
+        //
         listeners += manager.subscribe<FriendsListCallback> { callback ->
-            friends = if (!callback.isIncremental) friends + callback.friendList else callback.friendList
+            logger.debug("refresh friends for $name")
+            callback.friendList.forEach { friend -> relationships[friend.steamID] = friend.relationship }
+            if (nicknames.isEmpty()) {
+                friends.requestFriendInfo(relationships.keys.toList(), 0)
+            }
+        }
+        listeners += manager.subscribe<NicknameListCallback> { callback ->
+            logger.debug("refresh nicknames for $name")
+            callback.nicknames.forEach { nickname -> nicknames[nickname.steamID] = nickname.nickname }
+        }
+        //
+        listeners += manager.subscribe<ChatMsgCallback> { callback ->
+            launch {
+                val user = user
+                val nickname = nicknames[callback.chatterID] ?: "anno"
+                val forward = buildForwardMessage(user) {
+                    user.bot named nickname says "${callback.chatMsgType} at ${callback.chatRoomID}"
+                    user.bot named nickname says callback.message
+                }
+
+                user.sendMessage(message = forward)
+            }
         }
 
         launch {
@@ -111,7 +148,7 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
             this.clientLanguage = "chinese"
             this.isShouldRememberPassword = true
 
-            temp = this.username
+            name = this.username
         })
     }
 
