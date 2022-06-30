@@ -7,6 +7,6 @@ import `in`.dragonbra.javasteam.types.*
 public data class SteamRelation(
     public val steamID: SteamID,
     public val relationship: EFriendRelationship,
-    public val nickname: String?,
+    public val nickname: String,
     public val persona: PersonaState?
 )
