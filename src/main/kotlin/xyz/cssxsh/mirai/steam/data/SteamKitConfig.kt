@@ -1,8 +1,8 @@
 package xyz.cssxsh.mirai.steam.data
 
-import `in`.dragonbra.javasteam.networking.steam3.ProtocolTypes
-import `in`.dragonbra.javasteam.steam.discovery.FileServerListProvider
-import `in`.dragonbra.javasteam.steam.steamclient.configuration.SteamConfiguration
+import `in`.dragonbra.javasteam.networking.steam3.*
+import `in`.dragonbra.javasteam.steam.discovery.*
+import `in`.dragonbra.javasteam.steam.steamclient.configuration.*
 import net.mamoe.mirai.console.data.*
 import net.mamoe.mirai.console.plugin.jvm.*
 import net.mamoe.mirai.console.util.*

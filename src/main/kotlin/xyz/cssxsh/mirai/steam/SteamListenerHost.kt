@@ -26,16 +26,17 @@ public object SteamListenerHost : SimpleListenerHost() {
     public suspend fun MessageEvent.bind() {
         val content = message.contentToString()
         when {
-             content.startsWith("#steam-bind") -> {
-                // TODO: steam bind
+             "steam-bind" in content -> {
+                 sender.steam.auth()
             }
-            "#steam-friends" in content -> {
+            "steam-friend" in content -> {
                 subject.sendMessage(message = buildString {
-                    for (friend in sender.steam.relationship) {
-                        if (friend.steamID.isIndividualAccount.not()) continue
-                        appendLine("${friend.steamID} - ${friend.nickname} - ${friend.relationship}")
+                    for (relation in sender.steam.relations) {
+                        if (relation.steamID.isIndividualAccount.not()) continue
+                        if (relation.persona == null) continue
+                        appendLine("${relation.steamID} - ${relation.persona.name} - ${relation.persona.state}")
                     }
-                })
+                }.ifEmpty { "列表为空" })
             }
         }
     }
