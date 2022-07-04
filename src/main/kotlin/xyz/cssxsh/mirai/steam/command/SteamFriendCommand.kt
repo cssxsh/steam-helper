@@ -2,6 +2,8 @@ package xyz.cssxsh.mirai.steam.command
 
 import `in`.dragonbra.javasteam.types.*
 import net.mamoe.mirai.console.command.*
+import net.mamoe.mirai.message.data.*
+import net.mamoe.mirai.utils.ExternalResource.Companion.uploadAsImage
 import xyz.cssxsh.mirai.steam.*
 
 public object SteamFriendCommand : CompositeCommand(
@@ -12,13 +14,19 @@ public object SteamFriendCommand : CompositeCommand(
 ) {
     @SubCommand
     public suspend fun UserCommandSender.list() {
-        sendMessage(message = buildString {
+        sendMessage(message = buildMessageChain {
+            appendLine("${user.steam.name}的好友列表")
             for (relation in user.steam.relations) {
                 if (relation.steamID.isIndividualAccount.not()) continue
                 if (relation.persona == null) continue
+                try {
+                    append(relation.persona.avatar().uploadAsImage(subject))
+                } catch (_: Throwable) {
+                    //
+                }
                 appendLine("${relation.steamID} - ${relation.nickname} - ${relation.persona.gameName}")
             }
-        }.ifEmpty { "列表为空" })
+        })
     }
 
     @SubCommand

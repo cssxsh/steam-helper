@@ -3,6 +3,7 @@ package xyz.cssxsh.mirai.steam
 import `in`.dragonbra.javasteam.util.log.*
 import net.mamoe.mirai.console.command.CommandManager.INSTANCE.register
 import net.mamoe.mirai.console.command.CommandManager.INSTANCE.unregister
+import net.mamoe.mirai.console.extension.*
 import net.mamoe.mirai.console.plugin.jvm.*
 import net.mamoe.mirai.event.*
 import net.mamoe.mirai.utils.*
@@ -22,12 +23,13 @@ public object SteamHelperPlugin : KotlinPlugin(
     }
 ) {
 
-    init {
+    override fun PluginComponentStorage.onLoad() {
         val cache: MutableMap<Class<*>, MiraiLogger> = WeakHashMap()
         LogManager.addListener { clazz, message, throwable ->
             cache.getOrPut(clazz) { MiraiLogger.Factory.create(clazz, clazz.name) }
                 .debug(message, throwable)
         }
+        System.setProperty("xyz.cssxsh.mirai.steam.avatar", dataFolder.resolve("avatar").path)
     }
 
     override fun onEnable() {

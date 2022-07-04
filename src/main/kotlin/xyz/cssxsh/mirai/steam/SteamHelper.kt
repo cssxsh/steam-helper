@@ -188,7 +188,11 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
                     val sender = callback.sender
                     val user = user()
                     val nickname = nicknames[sender] ?: personas[sender]?.name ?: sender.render()
-                    val avatar = personas[sender]?.avatar()?.uploadAsImage(user) ?: "【找不到头像】".toPlainText()
+                    val avatar = try {
+                        personas[sender].avatar().uploadAsImage(user)
+                    } catch (_: Throwable) {
+                        "【头像下载失败】".toPlainText()
+                    }
                     when (callback.entryType) {
                         EChatEntryType.ChatMsg -> {
                             user.sendMessage(message = buildMessageChain {
@@ -210,7 +214,11 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
                         for (record in callback.messages) {
                             val sender = record.steamID
                             val nickname = nicknames[sender] ?: personas[sender]?.name ?: sender.render()
-                            val avatar = personas[sender]?.avatar()?.uploadAsImage(user) ?: "【找不到头像】".toPlainText()
+                            val avatar = try {
+                                personas[sender].avatar().uploadAsImage(user)
+                            } catch (_: Throwable) {
+                                "【头像下载失败】".toPlainText()
+                            }
                             val time = record.timestamp.toInstant().epochSecond.toInt()
                             user.bot named nickname at time says {
                                 append(avatar).appendLine(nickname)

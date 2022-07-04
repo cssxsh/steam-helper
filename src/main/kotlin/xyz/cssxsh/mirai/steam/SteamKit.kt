@@ -30,23 +30,26 @@ public fun DnsOverHttps(url: String, ipv6: Boolean = false): DnsOverHttps {
 public fun EResult.url(): String = "https://steamerrors.com/${code()}"
 
 private val http by lazy {
-    HttpClient(OkHttp)
+    HttpClient(OkHttp) {
+        expectSuccess = true
+    }
 }
 
 private val mutex = Mutex()
 
-public suspend fun PersonaState.avatar(): File {
-    val hex = avatarHash.joinToString(separator = "") { byte -> "%02x".format(byte) }
+public suspend fun PersonaState?.avatar(size: String = ""): File {
+    val hex = this?.avatarHash?.joinToString(separator = "") { byte -> "%02x".format(byte) }
+        .takeIf { it != "0000000000000000000000000000000000000000" }
+        ?: "fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb"
     val folder = File(System.getProperty("xyz.cssxsh.mirai.steam.avatar", "."))
-    val avatar = folder.resolve("${hex}_full.jpg")
+    val name = if (size.isEmpty()) "${hex}.jpg" else "${hex}_${size}.jpg"
+    val avatar = folder.resolve(name)
 
     mutex.withLock {
         if (!avatar.exists()) {
             folder.mkdirs()
 
-            val bytes: ByteArray = http.get("https://avatars.akamai.steamstatic.com/${hex}_full.jpg").body()
-
-            avatar.writeBytes(bytes)
+            avatar.writeBytes(http.get("https://avatars.akamai.steamstatic.com/$name").body())
         }
     }
 
