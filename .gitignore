@@ -118,4 +118,4 @@ run/
 !gradle-wrapper.jar
 
 # Local Test
-test/
+/debug-sandbox

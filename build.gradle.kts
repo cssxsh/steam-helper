@@ -2,7 +2,8 @@ plugins {
     kotlin("jvm") version "1.6.21"
     kotlin("plugin.serialization") version "1.6.21"
 
-    id("net.mamoe.mirai-console") version "2.12.0-RC"
+    id("net.mamoe.mirai-console") version "2.12.0"
+    id("net.mamoe.maven-central-publish") version "0.7.1"
 }
 
 group = "xyz.cssxsh"
@@ -17,23 +18,33 @@ kotlin {
     explicitApi()
 }
 
+mavenCentralPublish {
+    useCentralS01()
+    singleDevGithubProject("cssxsh", "steam-helper")
+    licenseFromGitHubProject("AGPL-3.0", "master")
+    publication {
+        artifact(tasks.getByName("buildPlugin"))
+        artifact(tasks.getByName("buildPluginLegacy"))
+    }
+}
+
 dependencies {
-    implementation("io.ktor:ktor-client-okhttp:2.0.2") {
+    implementation("io.ktor:ktor-client-okhttp:2.0.3") {
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.jetbrains.kotlinx")
         exclude(group = "org.slf4j")
     }
-    implementation("io.ktor:ktor-client-encoding:2.0.2") {
+    implementation("io.ktor:ktor-client-encoding:2.0.3") {
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.jetbrains.kotlinx")
         exclude(group = "org.slf4j")
     }
-    implementation("io.ktor:ktor-client-content-negotiation:2.0.2") {
+    implementation("io.ktor:ktor-client-content-negotiation:2.0.3") {
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.jetbrains.kotlinx")
         exclude(group = "org.slf4j")
     }
-    implementation("io.ktor:ktor-serialization-kotlinx-json:2.0.2") {
+    implementation("io.ktor:ktor-serialization-kotlinx-json:2.0.3") {
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.jetbrains.kotlinx")
         exclude(group = "org.slf4j")
