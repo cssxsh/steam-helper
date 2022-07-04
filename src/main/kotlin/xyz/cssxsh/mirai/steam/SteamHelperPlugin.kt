@@ -1,9 +1,12 @@
 package xyz.cssxsh.mirai.steam
 
-import `in`.dragonbra.javasteam.util.log.LogManager
+import `in`.dragonbra.javasteam.util.log.*
+import net.mamoe.mirai.console.command.CommandManager.INSTANCE.register
+import net.mamoe.mirai.console.command.CommandManager.INSTANCE.unregister
 import net.mamoe.mirai.console.plugin.jvm.*
 import net.mamoe.mirai.event.*
 import net.mamoe.mirai.utils.*
+import xyz.cssxsh.mirai.steam.command.*
 import xyz.cssxsh.mirai.steam.data.*
 import java.util.*
 
@@ -31,10 +34,18 @@ public object SteamHelperPlugin : KotlinPlugin(
         SteamKitConfig.reload()
         SteamAuthData.reload()
 
+        SteamAuthCommand.register()
+        SteamFriendCommand.register()
+        SteamSendCommand.register()
+
         SteamListenerHost.registerTo(globalEventChannel())
     }
 
     override fun onDisable() {
         SteamListenerHost.cancelAll()
+
+        SteamAuthCommand.unregister()
+        SteamFriendCommand.unregister()
+        SteamSendCommand.unregister()
     }
 }
