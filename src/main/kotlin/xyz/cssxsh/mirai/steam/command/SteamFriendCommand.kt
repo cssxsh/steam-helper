@@ -7,7 +7,7 @@ import xyz.cssxsh.mirai.steam.*
 public object SteamFriendCommand : CompositeCommand(
     owner = SteamHelperPlugin,
     "steam-friend",
-    description = "绑定 Steam 账号",
+    description = "Steam 好友管理",
     overrideContext = SteamCommandArgumentContext
 ) {
     @SubCommand
@@ -37,8 +37,8 @@ public object SteamFriendCommand : CompositeCommand(
     }
 
     @SubCommand
-    public fun UserCommandSender.plus(target: String) {
-        user.steam.add(target)
+    public fun UserCommandSender.plus(name: String) {
+        user.steam.add(name)
     }
 
     @SubCommand

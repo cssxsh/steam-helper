@@ -8,7 +8,7 @@ import xyz.cssxsh.mirai.steam.*
 public object SteamSendCommand : SimpleCommand(
     owner = SteamHelperPlugin,
     "steam-send",
-    description = "绑定 Steam 账号",
+    description = "发送消息",
     overrideContext = SteamCommandArgumentContext
 ) {
     @Handler
