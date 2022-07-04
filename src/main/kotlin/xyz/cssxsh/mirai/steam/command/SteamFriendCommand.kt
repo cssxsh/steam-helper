@@ -1,10 +1,10 @@
 package xyz.cssxsh.mirai.steam.command
 
-import `in`.dragonbra.javasteam.types.SteamID
+import `in`.dragonbra.javasteam.types.*
 import net.mamoe.mirai.console.command.*
 import xyz.cssxsh.mirai.steam.*
 
-public class SteamFriendCommand : CompositeCommand(
+public object SteamFriendCommand : CompositeCommand(
     owner = SteamHelperPlugin,
     "steam-friend",
     description = "绑定 Steam 账号",
@@ -16,13 +16,33 @@ public class SteamFriendCommand : CompositeCommand(
             for (relation in user.steam.relations) {
                 if (relation.steamID.isIndividualAccount.not()) continue
                 if (relation.persona == null) continue
-                appendLine("${relation.steamID} - ${relation.nickname} - ${relation.persona.name}")
+                appendLine("${relation.steamID} - ${relation.nickname} - ${relation.persona.gameName}")
             }
         }.ifEmpty { "列表为空" })
     }
 
     @SubCommand
     public fun UserCommandSender.ignore(target: SteamID, ignore: Boolean = true) {
-        user.steam.ignoreFriend(target, ignore)
+        user.steam.ignore(target, ignore)
+    }
+
+    @SubCommand
+    public fun UserCommandSender.nickname(target: SteamID, nickname: String) {
+        user.steam.nickname(target, nickname)
+    }
+
+    @SubCommand
+    public fun UserCommandSender.add(target: SteamID) {
+        user.steam.add(target)
+    }
+
+    @SubCommand
+    public fun UserCommandSender.plus(target: String) {
+        user.steam.add(target)
+    }
+
+    @SubCommand
+    public fun UserCommandSender.remove(target: SteamID) {
+        user.steam.remove(target)
     }
 }

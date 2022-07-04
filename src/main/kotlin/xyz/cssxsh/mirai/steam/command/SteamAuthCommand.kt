@@ -3,7 +3,7 @@ package xyz.cssxsh.mirai.steam.command
 import net.mamoe.mirai.console.command.*
 import xyz.cssxsh.mirai.steam.*
 
-public class SteamAuthCommand : SimpleCommand(
+public object SteamAuthCommand : SimpleCommand(
     owner = SteamHelperPlugin,
     "steam-auth",
     description = "绑定 Steam 账号",

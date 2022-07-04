@@ -5,9 +5,9 @@ import net.mamoe.mirai.console.command.*
 import net.mamoe.mirai.message.*
 import xyz.cssxsh.mirai.steam.*
 
-public class SteamSendCommand : SimpleCommand(
+public object SteamSendCommand : SimpleCommand(
     owner = SteamHelperPlugin,
-    "steam-auth",
+    "steam-send",
     description = "绑定 Steam 账号",
     overrideContext = SteamCommandArgumentContext
 ) {

@@ -19,6 +19,7 @@ import net.mamoe.mirai.event.*
 import net.mamoe.mirai.event.events.*
 import net.mamoe.mirai.message.data.*
 import net.mamoe.mirai.utils.*
+import net.mamoe.mirai.utils.ExternalResource.Companion.uploadAsImage
 import xyz.cssxsh.mirai.steam.data.*
 import kotlin.coroutines.*
 import kotlin.properties.*
@@ -34,8 +35,12 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
     private val configuration = SteamKitConfig.toSteamConfiguration()
     private val client: SteamClient = SteamClient(configuration)
     private val auth: SteamUser = client.handler()
-    private val persona: SteamFriends = client.handler()
+    private val friends: SteamFriends = client.handler()
 
+    /**
+     * @see save
+     */
+    private val jobs: MutableMap<JobID, (ICallbackMsg) -> Unit> = HashMap()
     private val logon: LogOnDetails = LogOnDetails().apply {
         loginID = id.hashCode()
         clientLanguage = "chinese"
@@ -64,6 +69,8 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
         private set
     public var name: String by SteamAuthData
         private set
+    public var persona: String = ""
+        private set
 
     private val messages: SharedFlow<ICallbackMsg> = with(MutableSharedFlow<ICallbackMsg>()) {
         launch {
@@ -77,6 +84,8 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
         }
         asSharedFlow()
     }
+
+    private suspend inline fun <reified C : ICallbackMsg> receive(): C = messages.first { it is C } as C
 
     private fun log(callback: ICallbackMsg) {
         when (callback) {
@@ -135,6 +144,14 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
                             relationships[friend.steamID] = friend.relationship
                         }
                     }
+                    is FriendAddedCallback -> {
+                        logger.debug("friend ${callback.personaName} added for $name")
+                        relationships[callback.steamID] = EFriendRelationship.Friend
+                        nicknames[callback.steamID] = callback.personaName
+                    }
+                    is NicknameCallback -> {
+                        jobs.remove(callback.jobID)?.invoke(callback)
+                    }
                     is NicknameListCallback -> {
                         logger.debug("refresh nicknames for $name")
                         callback.nicknames.forEach { nickname ->
@@ -143,14 +160,16 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
                     }
                     is AccountInfoCallback -> {
                         logger.debug("refresh account info for $name")
+                        persona = callback.personaName
                     }
-                    is FriendAddedCallback -> {
-                        // TODO: FriendAddedCallback
-                    }
+                    is ProfileInfoCallback -> {}
                     is PersonaStatesCallback -> {
                         callback.personaStates.forEach { state ->
                             personas[state.friendID] = state
                         }
+                    }
+                    is PersonaChangeCallback -> {
+                        persona = callback.name
                     }
                 }
             }
@@ -161,34 +180,42 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
         launch {
             when (callback) {
                 is ChatMsgCallback -> {
-                    val user = user()
-                    val chatter = callback.chatterID
-                    val nickname = nicknames[chatter] ?: personas[chatter]?.name ?: chatter.render()
-                    val forward = buildForwardMessage(user) {
-                        user.bot named nickname says "${callback.chatMsgType} at ${callback.chatRoomID}"
-                        chatter.accountID named nickname says callback.message
-                    }
-
-                    user.sendMessage(message = forward)
+                    logger.info { "${callback.chatRoomID}#${callback.chatterID}<${callback.chatMsgType}>: ${callback.message}" }
                 }
                 is FriendMsgCallback -> {
-                    val user = user()
-                    val sender = callback.sender
-                    val nickname = nicknames[sender] ?: personas[sender]?.name ?: sender.render()
-                    val forward = buildForwardMessage(user) {
-                        sender.accountID named nickname says callback.message
-                    }
+                    logger.info { "${callback.sender}<${callback.entryType}>: ${callback.message}" }
 
-                    user.sendMessage(message = forward)
+                    val sender = callback.sender
+                    val user = user()
+                    val nickname = nicknames[sender] ?: personas[sender]?.name ?: sender.render()
+                    val avatar = personas[sender]?.avatar()?.uploadAsImage(user) ?: "【找不到头像】".toPlainText()
+                    when (callback.entryType) {
+                        EChatEntryType.ChatMsg -> {
+                            user.sendMessage(message = buildMessageChain {
+                                append(avatar).appendLine(nickname)
+                                append(callback.message)
+                            })
+                        }
+                        else -> {}
+                    }
                 }
-                is FriendMsgEchoCallback -> {}
+                is FriendMsgEchoCallback -> {
+                    logger.info { "${callback.sender}<${callback.entryType}>: ${callback.message}" }
+                }
                 is FriendMsgHistoryCallback -> {
+                    logger.info { "${callback.steamID} message history ${callback.messages.size}" }
+
                     val user = user()
                     val forward = buildForwardMessage(user) {
-                        callback.messages.forEach { record ->
+                        for (record in callback.messages) {
                             val sender = record.steamID
                             val nickname = nicknames[sender] ?: personas[sender]?.name ?: sender.render()
-                            sender.accountID named nickname says record.message
+                            val avatar = personas[sender]?.avatar()?.uploadAsImage(user) ?: "【找不到头像】".toPlainText()
+                            val time = record.timestamp.toInstant().epochSecond.toInt()
+                            user.bot named nickname at time says {
+                                append(avatar).appendLine(nickname)
+                                append(record.message)
+                            }
                         }
                     }
 
@@ -217,7 +244,7 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
         listeners["NOTICE"] = launch { messages.collect { callback -> notice(callback) } }
         listeners["REFRESH"] = launch {
             while (isActive) {
-                if (!client.isConnected) messages.filterIsInstance<ConnectedCallback>().first()
+                if (!client.isConnected) receive<LoggedOnCallback>()
                 if (client.steamID == null) {
                     if (key.isNotEmpty()) {
                         logger.info("Connected, try auto refresh for $name")
@@ -247,8 +274,12 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
         throw NoSuchElementException("User(${id})")
     }
 
-    public suspend fun request(): MessageChain = coroutineScope {
+    private suspend fun request(): MessageChain = coroutineScope {
         globalEventChannel().nextEvent<FriendMessageEvent> { event -> event.friend.id == id }.message
+    }
+
+    private fun logon(block: LogOnDetails.() -> Unit) {
+        auth.logOn(logon.apply(block))
     }
 
     public fun auth(user: User = user()) {
@@ -260,41 +291,44 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
             logger.info { "try logon $username" }
 
             launch {
-                when (val result = messages.filterIsInstance<LoggedOnCallback>().first().result) {
+                when (val result = receive<LoggedOnCallback>().result) {
                     EResult.OK -> user.sendMessage(message = "登录成功")
                     EResult.AccountLoginDeniedNeedTwoFactor -> {
                         user.sendMessage(message = "登录需要令牌, 请输入")
-                        auth.logOn(logon.apply {
+                        val twoFactorCode = request().contentToString()
+                        logon {
                             this.username = username
                             this.password = password
-                            this.twoFactorCode = request().contentToString()
-                        })
+                            this.twoFactorCode = twoFactorCode
+                        }
                     }
                     EResult.TwoFactorCodeMismatch -> {
                         user.sendMessage(message = "令牌过期或不匹配, 请重新输入")
+                        val authCode = request().contentToString()
                         auth.logOn(logon.apply {
                             this.username = username
                             this.password = password
-                            this.twoFactorCode = request().contentToString()
+                            this.twoFactorCode = authCode
                         })
                     }
                     EResult.NeedCaptcha -> {
                         user.sendMessage(message = "登录需要验证码, 请输入")
-                        auth.logOn(logon.apply {
+                        val authCode = request().contentToString()
+                        logon {
                             this.username = username
                             this.password = password
-                            this.authCode = request().contentToString()
-                        })
+                            this.authCode = authCode
+                        }
                     }
                     else -> user.sendMessage(message = "登录失败, ${result.url()}")
                 }
             }
 
-            auth.logOn(logon.apply {
+            logon {
                 this.username = username
                 this.password = password
                 this.twoFactorCode = code
-            })
+            }
         }
     }
 
@@ -306,24 +340,40 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
         })
     }
 
-    public fun state(value: EPersonaState) {
-        persona.setPersonaState(value)
-    }
-
     public fun flush() {
-        persona.requestFriendInfo(relationships.keys.toList(), 0)
+        friends.requestFriendInfo(relationships.keys.toList(), 0)
     }
 
     public fun sendMessage(target: SteamID, message: String) {
-        persona.sendChatMessage(target, EChatEntryType.ChatMsg, message)
+        friends.sendChatMessage(target, EChatEntryType.ChatMsg, message)
     }
 
     public fun sendMessage(target: SteamID, message: Message) {
-        persona.sendChatMessage(target, EChatEntryType.ChatMsg, message.contentToString())
+        friends.sendChatMessage(target, EChatEntryType.ChatMsg, message.contentToString())
     }
 
-    public fun ignoreFriend(target: SteamID,  ignore: Boolean) {
-        persona.ignoreFriend(target, ignore)
+    public fun state(value: EPersonaState) {
+        friends.setPersonaState(value)
+    }
+
+    public fun ignore(target: SteamID, ignore: Boolean) {
+        friends.ignoreFriend(target, ignore)
+    }
+
+    public fun nickname(target: SteamID, nickname: String) {
+        friends.setFriendNickname(target, nickname)
+    }
+
+    public fun add(target: SteamID) {
+        friends.addFriend(target)
+    }
+
+    public fun add(target: String) {
+        friends.addFriend(target)
+    }
+
+    public fun remove(target: SteamID) {
+        friends.removeFriend(target)
     }
 
     public companion object Factory : ReadOnlyProperty<User, SteamHelper> {
