@@ -7,6 +7,8 @@ import `in`.dragonbra.javasteam.steam.steamclient.*
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.okhttp.*
+import io.ktor.client.plugins.*
+import io.ktor.client.plugins.compression.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.sync.*
 import net.mamoe.mirai.contact.*
@@ -32,11 +34,16 @@ public fun EResult.url(): String = "https://steamerrors.com/${code()}"
 private val http by lazy {
     HttpClient(OkHttp) {
         expectSuccess = true
+        BrowserUserAgent()
+        ContentEncoding()
     }
 }
 
 private val mutex = Mutex()
 
+/**
+ * @param size `<empty>`, `medium`, `full`
+ */
 public suspend fun PersonaState?.avatar(size: String = ""): File {
     val hex = this?.avatarHash?.joinToString(separator = "") { byte -> "%02x".format(byte) }
         .takeIf { it != "0000000000000000000000000000000000000000" }
