@@ -166,6 +166,9 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
                     is PersonaStatesCallback -> {
                         callback.personaStates.forEach { state ->
                             personas[state.friendID] = state
+                            launch {
+                                state.avatar()
+                            }
                         }
                     }
                     is PersonaChangeCallback -> {
@@ -252,7 +255,7 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
         listeners["NOTICE"] = launch { messages.collect { callback -> notice(callback) } }
         listeners["REFRESH"] = launch {
             while (isActive) {
-                if (!client.isConnected) receive<LoggedOnCallback>()
+                if (!client.isConnected) receive<ConnectedCallback>()
                 if (client.steamID == null) {
                     if (key.isNotEmpty()) {
                         logger.info("Connected, try auto refresh for $name")
@@ -336,6 +339,7 @@ public class SteamHelper(public val id: Long) : CoroutineScope {
                 this.username = username
                 this.password = password
                 this.twoFactorCode = code
+                this.loginKey = ""
             }
         }
     }
