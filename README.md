@@ -57,11 +57,11 @@
 
 ### MCL 指令安装
 
-* 预览版
-`./mcl --update-package xyz.cssxsh:steam-helper --channel stable --type maven-prerelease`
+* 预览版  
+    `./mcl --update-package xyz.cssxsh:steam-helper --channel maven-prerelease --type plugin`
 
-* 稳定版
-`./mcl --update-package xyz.cssxsh:steam-helper --channel stable --type maven-stable`
+* 稳定版  
+    `./mcl --update-package xyz.cssxsh:steam-helper --channel maven-stable --type plugin`
 
 ### 手动安装
 
