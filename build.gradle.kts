@@ -1,13 +1,13 @@
 plugins {
-    kotlin("jvm") version "1.6.21"
-    kotlin("plugin.serialization") version "1.6.21"
+    kotlin("jvm") version "1.7.10"
+    kotlin("plugin.serialization") version "1.7.10"
 
-    id("net.mamoe.mirai-console") version "2.12.0"
-    id("net.mamoe.maven-central-publish") version "0.7.1"
+    id("net.mamoe.mirai-console") version "2.12.1"
+    id("me.him188.maven-central-publish") version "1.0.0-dev-3"
 }
 
 group = "xyz.cssxsh"
-version = "1.0.0-dev"
+version = "1.0.0-dev-1"
 
 repositories {
     mavenLocal()
@@ -22,9 +22,10 @@ mavenCentralPublish {
     useCentralS01()
     singleDevGithubProject("cssxsh", "steam-helper")
     licenseFromGitHubProject("AGPL-3.0", "master")
+    workingDir = System.getenv("PUBLICATION_TEMP")?.let { file(it).resolve(projectName) }
+        ?: project.buildDir.resolve("publishing-tmp")
     publication {
         artifact(tasks.getByName("buildPlugin"))
-        artifact(tasks.getByName("buildPluginLegacy"))
     }
 }
 
@@ -59,9 +60,13 @@ dependencies {
     }
     compileOnly("net.mamoe:mirai-slf4j-bridge:1.2.0")
     // test
-    testImplementation(kotlin("test", "1.6.21"))
+    testImplementation(kotlin("test"))
     testImplementation("org.slf4j:slf4j-api:1.7.36")
     testImplementation("net.mamoe:mirai-slf4j-bridge:1.2.0")
+}
+
+mirai {
+    jvmTarget = JavaVersion.VERSION_11
 }
 
 tasks {
@@ -69,4 +74,3 @@ tasks {
         useJUnitPlatform()
     }
 }
-

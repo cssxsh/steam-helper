@@ -8,10 +8,10 @@ import kotlin.reflect.*
 public object SteamAuthData : AutoSavePluginData("SteamAuth"), ReadWriteProperty<SteamHelper, String> {
 
     @ValueName("login_keys")
-    public val keys : MutableMap<Long, String> by value()
+    public val keys: MutableMap<Long, String> by value()
 
     @ValueName("bind")
-    public val bind : MutableMap<Long, String> by value()
+    public val bind: MutableMap<Long, String> by value()
 
     override fun getValue(thisRef: SteamHelper, property: KProperty<*>): String {
         return when (property.name) {
