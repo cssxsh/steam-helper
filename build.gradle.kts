@@ -58,11 +58,10 @@ dependencies {
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.slf4j")
     }
-    compileOnly("net.mamoe:mirai-slf4j-bridge:1.2.0")
     // test
     testImplementation(kotlin("test"))
-    testImplementation("org.slf4j:slf4j-api:1.7.36")
-    testImplementation("net.mamoe:mirai-slf4j-bridge:1.2.0")
+    testImplementation("org.slf4j:slf4j-simple:2.0.0")
+    testImplementation("net.mamoe:mirai-logging-slf4j:2.13.0-M1")
 }
 
 mirai {

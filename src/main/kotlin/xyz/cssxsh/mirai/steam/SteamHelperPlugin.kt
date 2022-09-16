@@ -18,8 +18,6 @@ public object SteamHelperPlugin : KotlinPlugin(
         version = "1.0.0",
     ) {
         author("cssxsh")
-
-        dependsOn("net.mamoe.mirai.mirai-slf4j-bridge", true)
     }
 ) {
 
